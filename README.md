@@ -1,6 +1,7 @@
 # GitHub Profile Finder
 
 A clean, terminal-inspired web app to look up any GitHub user's profile — followers, repos, bio, location, and top starred repositories — all in one search.
+![GitHub Profile Finder Screenshot](githubdashboard.jpeg)
 
 ## Features
 
