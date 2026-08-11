@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Profile Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0e14;
+    --panel: #11151d;
+    --panel-border: #232936;
+    --mint: #7ee787;
+    --amber: #ffa657;
+    --text: #e6edf3;
+    --muted: #7d8797;
+    --red: #ff6b6b;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+
+  body{
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(126,231,135,0.06), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(255,166,87,0.05), transparent 40%);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display:flex;
+    justify-content:center;
+    padding: 60px 20px 100px;
+  }
+
+  .wrap{ width:100%; max-width: 560px; }
+
+  .prompt-line{
+    font-family: var(--mono);
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+  .prompt-line span{ color: var(--mint); }
+
+  h1{
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 28px;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  h1 .cursor{
+    display:inline-block;
+    width: 10px; height: 24px;
+    background: var(--mint);
+    margin-left: 6px;
+    vertical-align: -3px;
+    animation: blink 1.1s step-end infinite;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .sub{
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+
+  .search-box{
+    display:flex;
+    gap:10px;
+    margin-bottom: 28px;
+  }
+
+  #username{
+    flex:1;
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 15px;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  #username::placeholder{ color: #4c5563; }
+  #username:focus{
+    border-color: var(--mint);
+    box-shadow: 0 0 0 3px rgba(126,231,135,0.12);
+  }
+
+  #searchBtn{
+    padding: 14px 22px;
+    background: var(--mint);
+    color: #06210c;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 15px;
+    transition: transform .12s ease, background .15s ease;
+  }
+  #searchBtn:hover{ background: #94f0a0; }
+  #searchBtn:active{ transform: scale(0.96); }
+  #searchBtn:focus-visible, #username:focus-visible{
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+
+  #result{ min-height: 40px; }
+
+  .hint{
+    font-family: var(--mono);
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .error-box{
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--red);
+    background: rgba(255,107,107,0.08);
+    border: 1px solid rgba(255,107,107,0.25);
+    border-radius: 8px;
+    padding: 14px 16px;
+    animation: fadeIn .25s ease;
+  }
+  .error-box .path{ color: var(--muted); }
+
+  /* Loading spinner */
+  .loading{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    font-family: var(--mono);
+    color: var(--muted);
+    font-size: 14px;
+    padding: 8px 2px;
+  }
+  .spinner{
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--panel-border);
+    border-top-color: var(--mint);
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  /* Terminal card */
+  .term{
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    overflow: hidden;
+    animation: cardIn .35s cubic-bezier(.2,.8,.3,1);
+    box-shadow: 0 20px 40px -20px rgba(0,0,0,0.6);
+  }
+  @keyframes cardIn{
+    from{ opacity:0; transform: translateY(10px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+  @keyframes fadeIn{
+    from{ opacity:0; } to{ opacity:1; }
+  }
+
+  .term-bar{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #161b24;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .dot{ width:10px; height:10px; border-radius:50%; }
+  .dot.r{ background:#ff5f56; }
+  .dot.y{ background:#ffbd2e; }
+  .dot.g{ background:#27c93f; }
+  .term-path{
+    margin-left: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .term-body{ padding: 24px; }
+
+  .profile-head{
+    display:flex;
+    gap: 18px;
+    align-items:flex-start;
+    margin-bottom: 18px;
+  }
+
+  .avatar-wrap{ position:relative; flex-shrink:0; }
+  .avatar-wrap img{
+    width: 84px; height: 84px;
+    border-radius: 10px;
+    border: 1px solid var(--panel-border);
+    display:block;
+  }
+
+  .who h2{
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .who .login{
+    font-family: var(--mono);
+    color: var(--mint);
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  .who .login::before{ content: "@"; color: var(--muted); }
+
+  .bio{
+    color: #c3ccd6;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 18px;
+  }
+
+  .meta-list{
+    display:flex;
+    flex-direction:column;
+    gap: 7px;
+    margin-bottom: 20px;
+  }
+  .meta-item{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+  .meta-item svg{ flex-shrink:0; opacity:0.8; }
+
+  .stats{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat{
+    background: #0d1117;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 12px 10px;
+    text-align:center;
+    transition: border-color .15s ease;
+  }
+  .stat:hover{ border-color: var(--mint); }
+  .stat .num{
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text);
+  }
+  .stat .lbl{
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+  }
+
+  .repos-title{
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+
+  .repo{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding: 10px 12px;
+    background: #0d1117;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    text-decoration: none;
+    transition: border-color .15s ease, transform .1s ease;
+  }
+  .repo:hover{ border-color: var(--amber); transform: translateX(2px); }
+  .repo-name{
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+  }
+  .repo-stars{
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--amber);
+    white-space: nowrap;
+  }
+
+  .visit-btn{
+    display:block;
+    text-align:center;
+    margin-top: 20px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--mint);
+    color: var(--mint);
+    text-decoration:none;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    transition: background .15s ease, color .15s ease;
+  }
+  .visit-btn:hover{ background: var(--mint); color: #06210c; }
+
+  @media (max-width: 480px){
+    .profile-head{ flex-direction:column; align-items:center; text-align:center; }
+    .who .login::before{ content: "@"; }
+    .stats{ grid-template-columns: repeat(3, 1fr); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="prompt-line"><span>$</span> git config --get user.search</div>
+  <h1>Profile Finder<span class="cursor"></span></h1>
+  <p class="sub">Look up any GitHub account by username.</p>
+
+  <div class="search-box">
+    <input type="text" id="username" placeholder="e.g. octocat" autocomplete="off">
+    <button id="searchBtn">Search</button>
+  </div>
+
+  <div id="result">
+    <p class="hint">$ enter a username above and hit search</p>
+  </div>
+</div>
+
+<script>
+  const searchBtn = document.getElementById('searchBtn');
+  const usernameInput = document.getElementById('username');
+  const result = document.getElementById('result');
+
+  searchBtn.addEventListener('click', runSearch);
+  usernameInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') runSearch();
+  });
+
+  function runSearch(){
+    const username = usernameInput.value.trim();
+    if(username === ''){
+      result.innerHTML = `<div class="error-box">Please enter a username</div>`;
+      return;
+    }
+    fetchGitHubUser(username);
+  }
+
+  async function fetchGitHubUser(username){
+    result.innerHTML = `
+      <div class="loading">
+        <span class="spinner"></span>
+        <span>fetching github.com/${escapeHtml(username)} ...</span>
+      </div>
+    `;
+
+    try{
+      const res = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}`);
+      if(!res.ok){
+        throw new Error(res.status === 404 ? 'User not found' : 'Something went wrong. Try again.');
+      }
+      const user = await res.json();
+      const repos = await fetchTopRepos(user.repos_url);
+      displayUser(user, repos);
+    }catch(err){
+      result.innerHTML = `
+        <div class="error-box">
+          <div class="path">$ curl github.com/${escapeHtml(username)}</div>
+          ${err.message}
+        </div>
+      `;
+    }
+  }
+
+  async function fetchTopRepos(reposUrl){
+    try{
+      const res = await fetch(`${reposUrl}?sort=stars&direction=desc&per_page=3`);
+      if(!res.ok) return [];
+      return await res.json();
+    }catch{
+      return [];
+    }
+  }
+
+  function displayUser(user, repos){
+    const joined = new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+
+    const metaItems = [];
+    if(user.location){
+      metaItems.push(metaRow(iconPin(), user.location));
+    }
+    if(user.company){
+      metaItems.push(metaRow(iconBuilding(), user.company));
+    }
+    metaItems.push(metaRow(iconCalendar(), `joined ${joined}`));
+
+    const repoRows = repos.length
+      ? repos.map(r => `
+          <a class="repo" href="${r.html_url}" target="_blank" rel="noopener">
+            <span class="repo-name">${escapeHtml(r.name)}</span>
+            <span class="repo-stars">★ ${r.stargazers_count}</span>
+          </a>
+        `).join('')
+      : '';
+
+    result.innerHTML = `
+      <div class="term">
+        <div class="term-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="term-path">~/github/${escapeHtml(user.login)}</span>
+        </div>
+        <div class="term-body">
+          <div class="profile-head">
+            <div class="avatar-wrap">
+              <img src="${user.avatar_url}" alt="${escapeHtml(user.login)}">
+            </div>
+            <div class="who">
+              <h2>${escapeHtml(user.name || user.login)}</h2>
+              <div class="login">${escapeHtml(user.login)}</div>
+            </div>
+          </div>
+
+          ${user.bio ? `<p class="bio">${escapeHtml(user.bio)}</p>` : ''}
+
+          <div class="meta-list">${metaItems.join('')}</div>
+
+          <div class="stats">
+            <div class="stat">
+              <div class="num">${user.followers}</div>
+              <div class="lbl">Followers</div>
+            </div>
+            <div class="stat">
+              <div class="num">${user.following}</div>
+              <div class="lbl">Following</div>
+            </div>
+            <div class="stat">
+              <div class="num">${user.public_repos}</div>
+              <div class="lbl">Repos</div>
+            </div>
+          </div>
+
+          ${repoRows ? `<div class="repos-title">Top repositories</div>${repoRows}` : ''}
+
+          <a class="visit-btn" href="${user.html_url}" target="_blank" rel="noopener">View full profile on GitHub →</a>
+        </div>
+      </div>
+    `;
+  }
+
+  function metaRow(icon, text){
+    return `<div class="meta-item">${icon}<span>${escapeHtml(text)}</span></div>`;
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function iconPin(){
+    return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-7.5 8-13a8 8 0 1 0-16 0c0 5.5 8 13 8 13z"/><circle cx="12" cy="9" r="2.5"/></svg>`;
+  }
+  function iconBuilding(){
+    return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18"/><path d="M9 8h1M14 8h1M9 12h1M14 12h1M9 16h1M14 16h1"/></svg>`;
+  }
+  function iconCalendar(){
+    return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>`;
+  }
+</script>
+
+</body>
+</html>
